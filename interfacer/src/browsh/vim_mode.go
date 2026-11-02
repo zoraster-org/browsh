@@ -2,7 +2,9 @@ package browsh
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -534,8 +536,10 @@ func executeVimCommand(command string) {
 	case "findText":
 		fallthrough
 	case "findNext":
+		findForward = true
 		sendMessageToWebExtension("/tab_command,/find_next," + findText)
 	case "findPrevious":
+		findForward = false
 		sendMessageToWebExtension("/tab_command,/find_previous," + findText)
 	case "makeMark":
 		changeVimMode(markModeMake)
@@ -603,6 +607,72 @@ func changeVimMode(mode vimMode) {
 	currentVimMode = mode
 	// Reset keyEvents
 	keyEvents = nil
+}
+
+// The text of one TTY row of the tab's frame, lower-cased, with a space for
+// every cell that holds no character.
+func frameRowText(f *frame, y int) string {
+	var b strings.Builder
+	for x := 0; x < f.totalWidth; x++ {
+		if ch, ok := f.text[(y*f.totalWidth)+x]; ok && len(ch) > 0 {
+			b.WriteString(string(ch))
+		} else {
+			b.WriteByte(' ')
+		}
+	}
+	return strings.ToLower(b.String())
+}
+
+// Direction of the search in flight, for the frame fallback.
+var findForward = true
+
+// The page answers /find_next and /find_previous with the match's TTY row,
+// or -1. The page searches the whole document; the frame browsh holds only
+// covers a few screens around the view, so it's just the fallback.
+func handleFindResult(parts []string) {
+	if CurrentTab == nil || len(parts) == 0 {
+		return
+	}
+	row, err := strconv.Atoi(parts[0])
+	Log(fmt.Sprintf("find result: row %s (current top row %d)", parts[0], CurrentTab.frame.yScroll))
+	if err != nil || row < 0 {
+		findInFrame(findForward)
+		return
+	}
+	CurrentTab.StatusMessage = ""
+	doScrollAbsolute(CurrentTab.frame.xScroll, row)
+}
+
+// Scroll to the next (or previous) row of the frame containing findText,
+// starting after (before) the current top row and wrapping around. Only
+// the text browsh already holds is searched; see handleFindResult.
+func findInFrame(forward bool) bool {
+	if CurrentTab == nil || len(findText) == 0 {
+		return false
+	}
+	f := &CurrentTab.frame
+	rows := f.domRowCount()
+	if rows == 0 || f.totalWidth == 0 {
+		return false
+	}
+	needle := strings.ToLower(findText)
+	start := f.yScroll
+	for i := 1; i <= rows; i++ {
+		var y int
+		if forward {
+			y = (start + i) % rows
+		} else {
+			y = ((start-i)%rows + rows) % rows
+		}
+		if strings.Contains(frameRowText(f, y), needle) {
+			doScrollAbsolute(f.xScroll, y)
+			CurrentTab.StatusMessage = ""
+			return true
+		}
+	}
+	CurrentTab.StatusMessage = "Not found: " + findText
+	renderUI()
+	return false
 }
 
 func searchVisibleScreenForText(text string) []Coordinate {

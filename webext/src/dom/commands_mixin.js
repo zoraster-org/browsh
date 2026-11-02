@@ -65,7 +65,7 @@ export default (MixinBase) =>
           this.findNext(parts[1]);
           break;
         case "/find_previous":
-          window.find(parts[1], false, true, false, false, true, true);
+          this.findPrevious(parts[1]);
           break;
         case "/get_link_hints":
           this.getLinkHints(false);
@@ -169,19 +169,39 @@ export default (MixinBase) =>
     }
 
     findNext(text) {
-      window.find(text, false, false, false, false, true, true);
-      //var s = window.getSelection();
-      //var oRange = s.getRangeAt(0); //get the text range
-      //var oRect = oRange.getBoundingClientRect();
-      //window.scrollTo(400, 20000);
-      this.dimensions.y_scroll = Math.round(
-        window.scrollY * this.dimensions.scale_factor.height
-      );
-      this.dimensions.x_scroll = Math.round(
-        window.scrollX * this.dimensions.scale_factor.width
-      );
-      this.dimensions.update();
-      this._mightSendBigFrames();
+      this._find(text, false);
+    }
+
+    findPrevious(text) {
+      this._find(text, true);
+    }
+
+    // window.find() selects the match but doesn't scroll a headless window,
+    // so report the match's TTY row and let the terminal scroll there (its
+    // scroll_status reply moves this window to match). -1 means not found.
+    _find(text, backwards) {
+      // (string, caseSensitive, backwards, wrapAround, wholeWord, searchInFrames, showDialog)
+      let found = window.find(text, false, backwards, true, false, true, false);
+      if (!found) {
+        // The wrapAround flag isn't reliable here; with no selection the
+        // search restarts from the start (or, backwards, the end).
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+        }
+        found = window.find(text, false, backwards, false, false, true, false);
+      }
+      let row = -1;
+      if (found) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const rect = selection.getRangeAt(0).getBoundingClientRect();
+          row = Math.round(
+            ((rect.top + window.scrollY) * this.dimensions.scale_factor.height) / 2
+          );
+        }
+      }
+      this.sendMessage(`/find_result,${row}`);
     }
 
     _launch() {

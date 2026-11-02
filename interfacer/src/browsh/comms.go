@@ -90,6 +90,8 @@ func handleWebextensionCommand(message []byte) {
 		saveScreenshot(parts[1])
 	case "/link_hints":
 		parseJSONLinkHints(strings.Join(parts[1:], ","))
+	case "/find_result":
+		handleFindResult(parts[1:])
 	default:
 		Log("IGNORE " + string(message))
 	}
