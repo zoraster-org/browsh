@@ -99,6 +99,7 @@ func setDefaults() {
 	vimKeyMap["normal t"] = "newTab"
 	vimKeyMap["normal T"] = "searchForTab"
 	vimKeyMap["normal /"] = "findMode"
+	vimKeyMap["normal <C-f>"] = "findMode"
 	vimKeyMap["normal n"] = "findNext"
 	vimKeyMap["normal N"] = "findPrevious"
 	vimKeyMap["normal g0"] = "firstTab"
