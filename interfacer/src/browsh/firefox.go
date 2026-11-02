@@ -235,9 +235,14 @@ func installWebextension() {
 	if err != nil {
 		Shutdown(err)
 	}
-	path := path.Join(os.TempDir(), "browsh-webext-addon")
+	// The .xpi suffix matters: a temporary add-on is loaded from this file
+	// in place, and without the suffix Firefox reports a successful install
+	// but never starts the extension.
+	path := path.Join(os.TempDir(), "browsh-webext-addon.xpi")
 	ioutil.WriteFile(path, []byte(data), 0644)
-	args := map[string]interface{}{"path": path}
+	// Temporary: a locally built xpi is unsigned, and release Firefox only
+	// accepts unsigned add-ons as temporary installs.
+	args := map[string]interface{}{"path": path, "temporary": true}
 	sendFirefoxCommand("Addon:Install", args)
 }
 
