@@ -1,3 +1,11 @@
+> **This fork's `vimium` branch** is upstream's unreleased `vim-mode-2022`
+> branch (Vimium-style keys: `f`/`F` link hints, `j`/`k`, `d`/`u`, `gg`/`G`,
+> `H`/`L`, `J`/`K`, `/` find) plus a few fixes so a locally built, unsigned
+> extension works with current Firefox: it is installed as a temporary add-on
+> (also with `--firefox.use-existing`); plus `Ctrl-f` as find and a fresh
+> search text per find. See `git log upstream/vim-mode-2022..vimium`.
+> Everything else, including the Ctrl-key shortcuts, is upstream browsh.
+
 [![Follow @brow_sh](https://img.shields.io/twitter/follow/brow_sh.svg?style=social&label=Follow)](https://twitter.com/intent/follow?screen_name=brow_sh)
 
 ![Browsh Logo](https://www.brow.sh/assets/images/browsh-header.jpg)
