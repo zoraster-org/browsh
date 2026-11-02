@@ -246,6 +246,22 @@ func installWebextension() {
 	sendFirefoxCommand("Addon:Install", args)
 }
 
+// StartFirefox runs before startWebSocketServer, and an extension installed
+// into an already-running Firefox starts dialling the server at once. Wait
+// until the port accepts connections so its first attempt isn't refused.
+// A bare dial never reaches the HTTP handler.
+func installWebextensionWhenServerUp() {
+	addr := "127.0.0.1:" + viper.GetString("browsh.websocket-port")
+	for i := 0; i < 500; i++ {
+		if conn, err := net.Dial("tcp", addr); err == nil {
+			conn.Close()
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	installWebextension()
+}
+
 // Set a Firefox preference as you would in `about:config`
 // `value` needs to be supplied with quotes if it's to be used as a JS string
 func setFFPreference(key string, value string) {
@@ -332,6 +348,9 @@ func StartFirefox() {
 		}
 	} else {
 		firefoxMarionette()
+		// Temporary add-ons don't persist, so install into the existing
+		// Firefox too.
+		go installWebextensionWhenServerUp()
 		writeString(0, 16, "Waiting for a user-initiated Firefox instance to connect...", tcell.StyleDefault)
 	}
 }
