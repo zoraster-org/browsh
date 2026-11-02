@@ -546,6 +546,9 @@ func executeVimCommand(command string) {
 	case "insertModeHard":
 		changeVimMode(insertModeHard)
 	case "findMode":
+		// Start each search fresh; findText was only cleared on Esc, so a
+		// second search appended to the last one. n/N reuse it afterwards.
+		findText = ""
 		changeVimMode(findMode)
 	case "normalMode":
 		changeVimMode(normalMode)
